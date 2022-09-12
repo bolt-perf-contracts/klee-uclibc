@@ -6,6 +6,7 @@
  */
 
 #include "_string.h"
+#include "../klee/include/klee/klee.h"
 
 #ifdef WANT_WIDE
 # define Wstrchr wcschr
@@ -17,13 +18,21 @@ libc_hidden_proto(Wstrchr)
 
 Wchar *Wstrchr(register const Wchar *s, Wint c)
 {
-	do {
-		if (*s == ((Wchar)c)) {
-			return (Wchar *) s;	/* silence the warning */
-		}
-	} while (*s++);
+	uint32_t ret;
+	klee_make_symbolic(&ret, sizeof(ret), "strchr_return_value");
+	int n = strlen(s);
+	klee_strchr(s, c, n, ret);
+	if (ret == n)
+		return NULL;
+	else
+		return (Wchar *)(s + ret);
+	// do {
+	// 	if (*s == ((Wchar)c)) {
+	// 		return (Wchar *) s;	/* silence the warning */
+	// 	}
+	// } while (*s++);
 
-	return NULL;
+	// return NULL;
 }
 libc_hidden_def(Wstrchr)
 
