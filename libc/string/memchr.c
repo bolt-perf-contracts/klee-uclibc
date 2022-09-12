@@ -6,6 +6,7 @@
  */
 
 #include "_string.h"
+#include "../klee/include/klee/klee.h"
 
 #ifdef WANT_WIDE
 # define Wmemchr wmemchr
@@ -17,24 +18,33 @@ libc_hidden_proto(Wmemchr)
 
 Wvoid *Wmemchr(const Wvoid *s, Wint c, size_t n)
 {
-	register const Wuchar *r = (const Wuchar *) s;
-#ifdef __BCC__
-	/* bcc can optimize the counter if it thinks it is a pointer... */
-	register const char *np = (const char *) n;
-#else
-# define np n
-#endif
+	uint32_t ret;
+	klee_make_symbolic(&ret, sizeof(ret), "memchr_return_value");
+	klee_memchr(s, c, n, ret);
+	if (ret == n)
+		return NULL;
+	else
+		return (Wvoid *) (s + ret);
 
-	while (np) {
-		if (*r == ((Wuchar)c)) {
-			return (Wvoid *) r;	/* silence the warning */
-		}
-		++r;
-		--np;
-	}
+// 	register const Wuchar *r = (const Wuchar *) s;
+// #ifdef __BCC__
+// 	/* bcc can optimize the counter if it thinks it is a pointer... */
+// 	register const char *np = (const char *) n;
+// #else
+// # define np n
+// #endif
 
-	return NULL;
+// 	while (np) {
+// 		if (*r == ((Wuchar)c)) {
+// 			return (Wvoid *) r;	/* silence the warning */
+// 		}
+// 		++r;
+// 		--np;
+// 	}
+
+// 	return NULL;
+	
 }
-#undef np
+// #undef np
 
 libc_hidden_def(Wmemchr)
